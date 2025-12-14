@@ -82,6 +82,25 @@ app.post("/products", async (req, res) => {
   res.json(rows[0]);
 });
 
+// UPDATE product (image, name, sku, etc.)
+app.patch("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const { image_url } = req.body;
+
+  const { rows } = await pool.query(
+    `UPDATE products
+     SET image_url = $1
+     WHERE id = $2
+     RETURNING *`,
+    [image_url, id]
+  );
+
+  if (rows.length === 0) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  res.json(rows[0]);
+});
 
 // UPDATE stock
 app.patch("/products/:id/stock", async (req, res) => {
