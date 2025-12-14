@@ -146,6 +146,45 @@ app.get("/inventory/velocity", async (req, res) => {
 
   res.json(result);
 });
+app.get("/inventory/reorder-status", async (req, res) => {
+  const LEAD_TIME_DAYS = 30; // change later per supplier
+
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.sku,
+      p.name,
+      p.stock,
+      p.reorder_point,
+
+      COALESCE(SUM(CASE 
+        WHEN s.sold_at >= NOW() - INTERVAL '30 days' 
+        THEN s.quantity END), 0) / 30.0 AS daily_velocity_30
+
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    GROUP BY p.id
+  `);
+
+  const result = rows.map(p => {
+    const days_left =
+      p.daily_velocity_30 > 0
+        ? p.stock / p.daily_velocity_30
+        : null;
+
+    let status = "OK";
+    if (days_left !== null && days_left <= LEAD_TIME_DAYS) status = "ORDER NOW";
+    else if (days_left !== null && days_left <= LEAD_TIME_DAYS * 1.5) status = "ORDER SOON";
+
+    return {
+      ...p,
+      days_of_stock: days_left,
+      status
+    };
+  });
+
+  res.json(result);
+});
 
 
 app.get("/", (req, res) => {
