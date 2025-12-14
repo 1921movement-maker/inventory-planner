@@ -27,6 +27,23 @@ const pool = new Pool({
     console.error("DB init error", err);
   }
 })();
+// create sales table
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sales (
+        id SERIAL PRIMARY KEY,
+        product_id INT REFERENCES products(id),
+        quantity INT NOT NULL,
+        sold_at DATE DEFAULT CURRENT_DATE
+      );
+    `);
+    console.log("Sales table ready");
+  } catch (err) {
+    console.error("Sales table error", err);
+  }
+})();
+
 // CREATE product
 app.post("/products", async (req, res) => {
   const { sku, name, stock = 0, reorder_point = 0 } = req.body;
