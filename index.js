@@ -63,16 +63,25 @@ const pool = new Pool({
 })();
 
 
-// CREATE product
+// CREATE product (with image)
 app.post("/products", async (req, res) => {
-  const { sku, name, stock = 0, reorder_point = 0 } = req.body;
+  const {
+    sku,
+    name,
+    stock = 0,
+    reorder_point = 0,
+    image_url = null
+  } = req.body;
+
   const { rows } = await pool.query(
-    `INSERT INTO products (sku, name, stock, reorder_point)
-     VALUES ($1,$2,$3,$4) RETURNING *`,
-    [sku, name, stock, reorder_point]
+    `INSERT INTO products (sku, name, stock, reorder_point, image_url)
+     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [sku, name, stock, reorder_point, image_url]
   );
+
   res.json(rows[0]);
 });
+
 
 // UPDATE stock
 app.patch("/products/:id/stock", async (req, res) => {
