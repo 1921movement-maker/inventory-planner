@@ -197,6 +197,32 @@ app.get("/inventory/reorder-status", async (req, res) => {
 
   res.json(result);
 });
+app.post("/purchase-orders/suggest", async (req, res) => {
+  const { product_id, lead_time_days = 30, buffer_days = 14 } = req.body;
+
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.stock,
+      COALESCE(SUM(
+        CASE WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+        THEN s.quantity END
+      ), 0) / 30.0 AS daily_velocity
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    WHERE p.id = $1
+    GROUP BY p.id
+  `, [product_id]);
+
+  const p = rows[0];
+  const needed =
+    Math.ceil((lead_time_days + buffer_days) * p.daily_velocity - p.stock);
+
+  res.json({
+    product_id,
+    suggested_quantity: Math.max(needed, 0)
+  });
+});
 
 
 app.get("/", (req, res) => {
