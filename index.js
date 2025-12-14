@@ -73,6 +73,16 @@ app.get("/inventory/reorder", async (req, res) => {
   );
   res.json(rows);
 });
+// RECORD sale
+app.post("/sales", async (req, res) => {
+  const { product_id, quantity } = req.body;
+  const { rows } = await pool.query(
+    `INSERT INTO sales (product_id, quantity)
+     VALUES ($1, $2) RETURNING *`,
+    [product_id, quantity]
+  );
+  res.json(rows[0]);
+});
 
 
 app.get("/", (req, res) => {
