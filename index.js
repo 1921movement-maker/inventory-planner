@@ -83,6 +83,30 @@ app.post("/sales", async (req, res) => {
   );
   res.json(rows[0]);
 });
+// SALES VELOCITY + DAYS OF STOCK
+app.get("/inventory/velocity", async (req, res) => {
+  const days = Number(req.query.days) || 30;
+
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.sku,
+      p.name,
+      p.stock,
+      COALESCE(SUM(s.quantity), 0) / $1 AS daily_velocity,
+      CASE
+        WHEN COALESCE(SUM(s.quantity), 0) = 0 THEN NULL
+        ELSE p.stock / (COALESCE(SUM(s.quantity), 0) / $1)
+      END AS days_of_stock
+    FROM products p
+    LEFT JOIN sales s
+      ON p.id = s.product_id
+      AND s.sold_at >= CURRENT_DATE - INTERVAL '1 day' * $1
+    GROUP BY p.id
+  `, [days]);
+
+  res.json(rows);
+});
 
 
 app.get("/", (req, res) => {
