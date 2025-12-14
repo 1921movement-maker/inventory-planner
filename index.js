@@ -107,6 +107,45 @@ app.get("/inventory/velocity", async (req, res) => {
 
   res.json(rows);
 });
+app.get("/inventory/velocity", async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.sku,
+      p.name,
+      p.stock,
+
+      -- 7 day velocity
+      COALESCE(SUM(CASE WHEN s.sold_at >= NOW() - INTERVAL '7 days' THEN s.quantity END), 0) / 7.0
+        AS daily_velocity_7,
+
+      -- 14 day velocity
+      COALESCE(SUM(CASE WHEN s.sold_at >= NOW() - INTERVAL '14 days' THEN s.quantity END), 0) / 14.0
+        AS daily_velocity_14,
+
+      -- 30 day velocity
+      COALESCE(SUM(CASE WHEN s.sold_at >= NOW() - INTERVAL '30 days' THEN s.quantity END), 0) / 30.0
+        AS daily_velocity_30,
+
+      -- 90 day velocity
+      COALESCE(SUM(CASE WHEN s.sold_at >= NOW() - INTERVAL '90 days' THEN s.quantity END), 0) / 90.0
+        AS daily_velocity_90
+
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    GROUP BY p.id
+  `);
+
+  const result = rows.map(r => ({
+    ...r,
+    days_of_stock_7: r.daily_velocity_7 > 0 ? r.stock / r.daily_velocity_7 : null,
+    days_of_stock_14: r.daily_velocity_14 > 0 ? r.stock / r.daily_velocity_14 : null,
+    days_of_stock_30: r.daily_velocity_30 > 0 ? r.stock / r.daily_velocity_30 : null,
+    days_of_stock_90: r.daily_velocity_90 > 0 ? r.stock / r.daily_velocity_90 : null
+  }));
+
+  res.json(result);
+});
 
 
 app.get("/", (req, res) => {
