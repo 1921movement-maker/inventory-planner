@@ -43,6 +43,18 @@ const pool = new Pool({
     console.error("Sales table error", err);
   }
 })();
+(async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id SERIAL PRIMARY KEY,
+      product_id INT REFERENCES products(id),
+      quantity INT,
+      status TEXT DEFAULT 'DRAFT',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+})();
+
 
 // CREATE product
 app.post("/products", async (req, res) => {
