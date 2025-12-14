@@ -228,6 +228,43 @@ app.post("/purchase-orders", async (req, res) => {
 
   res.json(rows[0]);
 });
+app.post("/purchase-orders/:id/receive", async (req, res) => {
+  const { id } = req.params;
+
+  // Get PO
+  const poResult = await pool.query(
+    `SELECT * FROM purchase_orders WHERE id = $1`,
+    [id]
+  );
+
+  if (poResult.rows.length === 0) {
+    return res.status(404).json({ error: "PO not found" });
+  }
+
+  const po = poResult.rows[0];
+
+  // Update product stock
+  await pool.query(
+    `UPDATE products
+     SET stock = stock + $1
+     WHERE id = $2`,
+    [po.quantity, po.product_id]
+  );
+
+  // Update PO status
+  await pool.query(
+    `UPDATE purchase_orders
+     SET status = 'RECEIVED'
+     WHERE id = $1`,
+    [id]
+  );
+
+  res.json({
+    message: "Inventory received",
+    product_id: po.product_id,
+    quantity_added: po.quantity
+  });
+});
 
 
 app.get("/", (req, res) => {
