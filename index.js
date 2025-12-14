@@ -223,6 +223,17 @@ app.post("/purchase-orders/suggest", async (req, res) => {
     suggested_quantity: Math.max(needed, 0)
   });
 });
+app.post("/purchase-orders", async (req, res) => {
+  const { product_id, quantity } = req.body;
+
+  const { rows } = await pool.query(
+    `INSERT INTO purchase_orders (product_id, quantity)
+     VALUES ($1,$2) RETURNING *`,
+    [product_id, quantity]
+  );
+
+  res.json(rows[0]);
+});
 
 
 app.get("/", (req, res) => {
