@@ -45,6 +45,13 @@ const pool = new Pool({
 })();
 (async () => {
   await pool.query(`
+    ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS image_url TEXT;
+  `);
+})();
+
+(async () => {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS purchase_orders (
       id SERIAL PRIMARY KEY,
       product_id INT REFERENCES products(id),
