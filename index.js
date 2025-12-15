@@ -376,6 +376,25 @@ const { rows } = await pool.query(
 res.json(rows[0]);
 
 });
+app.post("/purchase-orders/from-suggestion", async (req, res) => {
+  const { product_id, quantity, expected_date } = req.body;
+
+  if (!product_id || !quantity) {
+    return res.status(400).json({ error: "product_id and quantity required" });
+  }
+
+  const { rows } = await pool.query(
+    `
+    INSERT INTO purchase_orders (product_id, quantity, expected_date, status)
+    VALUES ($1, $2, $3, 'open')
+    RETURNING *
+    `,
+    [product_id, quantity, expected_date || null]
+  );
+
+  res.json(rows[0]);
+});
+
 app.post("/purchase-orders/:id/receive", async (req, res) => {
   const poId = req.params.id;
 
