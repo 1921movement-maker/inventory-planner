@@ -61,6 +61,9 @@ const pool = new Pool({
     );
   `);
 })();
+ALTER TABLE purchase_orders
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open',
+ADD COLUMN IF NOT EXISTS expected_date DATE;
 
 
 // CREATE product (with image)
