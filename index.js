@@ -49,6 +49,17 @@ const pool = new Pool({
     ADD COLUMN IF NOT EXISTS image_url TEXT;
   `);
 })();
+(async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      lead_time_days INT DEFAULT 30,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+})();
+
 
 (async () => {
   await pool.query(`
