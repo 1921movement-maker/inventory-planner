@@ -298,6 +298,55 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
     }
 
     const po = rows[0];
+    app.get("/purchase-orders/intelligence", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        po.id AS po_id,
+        po.product_id,
+        p.name,
+        p.image_url,
+        po.quantity,
+        po.status,
+        po.expected_date,
+        p.stock,
+
+        -- 30 day velocity
+        COALESCE(
+          SUM(CASE
+            WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+            THEN s.quantity
+          END), 0
+        ) / 30.0 AS daily_velocity_30,
+
+        CASE
+          WHEN po.status = 'received' THEN 'RECEIVED'
+          WHEN po.expected_date < CURRENT_DATE THEN 'LATE'
+          WHEN p.stock / NULLIF(
+            COALESCE(
+              SUM(CASE
+                WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+                THEN s.quantity
+              END), 0
+            ) / 30.0, 0
+          ) <= 14 THEN 'AT_RISK'
+          ELSE 'ON_TIME'
+        END AS po_health
+
+      FROM purchase_orders po
+      JOIN products p ON p.id = po.product_id
+      LEFT JOIN sales s ON s.product_id = p.id
+      GROUP BY po.id, p.id
+      ORDER BY po.expected_date ASC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load PO intelligence" });
+  }
+});
+
 
     if (po.status === "received") {
       return res.status(400).json({ error: "PO already received" });
