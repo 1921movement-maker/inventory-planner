@@ -632,5 +632,6 @@ app.get("/purchase-orders/intelligence", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("Inventory Planner API running");
 });
+app.use(express.static(__dirname));
 
 app.listen(process.env.PORT || 3000);
