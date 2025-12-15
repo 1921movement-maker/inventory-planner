@@ -243,8 +243,7 @@ app.get("/inventory/reorder-status", async (req, res) => {
   res.json(result);
 });
 app.get("/purchase-orders/suggestions", async (req, res) => {
-  const LEAD_TIME_DAYS = 30;
-  const TARGET_DAYS_COVERAGE = 90; // you can tweak later
+  const TARGET_DAYS_COVERAGE = 90;
 
   const { rows } = await pool.query(`
     SELECT
@@ -254,11 +253,11 @@ app.get("/purchase-orders/suggestions", async (req, res) => {
       p.image_url,
       p.stock,
       p.reorder_point,
-      COALESCE(SUM(CASE 
-        WHEN s.sold_at >= NOW() - INTERVAL '30 days'
-        THEN s.quantity END), 0) / 30.0 AS daily_velocity
+      COALESCE(SUM(s.quantity), 0) / 30.0 AS daily_velocity
     FROM products p
-    LEFT JOIN sales s ON p.id = s.product_id
+    LEFT JOIN sales s
+      ON p.id = s.product_id
+     AND s.sold_at >= NOW() - INTERVAL '30 days'
     GROUP BY p.id
   `);
 
@@ -277,7 +276,7 @@ app.get("/purchase-orders/suggestions", async (req, res) => {
         name: p.name,
         image_url: p.image_url,
         current_stock: p.stock,
-        daily_velocity: Number(p.daily_velocity.toFixed(2)),
+        daily_velocity: Number(p.daily_velocity),
         suggested_order_quantity: order_qty
       };
     })
@@ -285,6 +284,7 @@ app.get("/purchase-orders/suggestions", async (req, res) => {
 
   res.json(suggestions);
 });
+
 
 // PO RECOMMENDATIONS
 app.get("/purchase-orders/recommendations", async (req, res) => {
