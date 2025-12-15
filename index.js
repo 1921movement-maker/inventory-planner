@@ -242,6 +242,55 @@ app.get("/inventory/reorder-status", async (req, res) => {
 
   res.json(result);
 });
+// PO RECOMMENDATIONS
+app.get("/purchase-orders/recommendations", async (req, res) => {
+  const LEAD_TIME_DAYS = 30;
+  const TARGET_DAYS = 60;
+
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.sku,
+      p.name,
+      p.image_url,
+      p.stock,
+
+      -- 30-day velocity
+      COALESCE(SUM(
+        CASE 
+          WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+          THEN s.quantity 
+        END
+      ), 0) / 30.0 AS daily_velocity_30
+
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    GROUP BY p.id
+  `);
+
+  const recommendations = rows.map(p => {
+    const dailyVelocity = Number(p.daily_velocity_30) || 0;
+    const neededStock = dailyVelocity * TARGET_DAYS;
+    const recommendedQty = Math.max(
+      Math.ceil(neededStock - p.stock),
+      0
+    );
+
+    return {
+      product_id: p.id,
+      sku: p.sku,
+      name: p.name,
+      image_url: p.image_url,
+      stock: p.stock,
+      daily_velocity_30: dailyVelocity,
+      recommended_order_qty: recommendedQty,
+      target_days: TARGET_DAYS
+    };
+  });
+
+  res.json(recommendations);
+});
+
 app.post("/purchase-orders/suggest", async (req, res) => {
   const { product_id, lead_time_days = 30, buffer_days = 14 } = req.body;
 
