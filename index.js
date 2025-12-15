@@ -59,6 +59,13 @@ const pool = new Pool({
     );
   `);
 })();
+(async () => {
+  await pool.query(`
+    ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS supplier_id INT
+    REFERENCES suppliers(id);
+  `);
+})();
 
 
 (async () => {
