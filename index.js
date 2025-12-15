@@ -242,6 +242,50 @@ app.get("/inventory/reorder-status", async (req, res) => {
 
   res.json(result);
 });
+app.get("/purchase-orders/suggestions", async (req, res) => {
+  const LEAD_TIME_DAYS = 30;
+  const TARGET_DAYS_COVERAGE = 90; // you can tweak later
+
+  const { rows } = await pool.query(`
+    SELECT
+      p.id,
+      p.sku,
+      p.name,
+      p.image_url,
+      p.stock,
+      p.reorder_point,
+      COALESCE(SUM(CASE 
+        WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+        THEN s.quantity END), 0) / 30.0 AS daily_velocity
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    GROUP BY p.id
+  `);
+
+  const suggestions = rows
+    .map(p => {
+      if (p.daily_velocity <= 0) return null;
+
+      const needed_stock = Math.ceil(p.daily_velocity * TARGET_DAYS_COVERAGE);
+      const order_qty = Math.max(needed_stock - p.stock, 0);
+
+      if (order_qty === 0) return null;
+
+      return {
+        product_id: p.id,
+        sku: p.sku,
+        name: p.name,
+        image_url: p.image_url,
+        current_stock: p.stock,
+        daily_velocity: Number(p.daily_velocity.toFixed(2)),
+        suggested_order_quantity: order_qty
+      };
+    })
+    .filter(Boolean);
+
+  res.json(suggestions);
+});
+
 // PO RECOMMENDATIONS
 app.get("/purchase-orders/recommendations", async (req, res) => {
   const LEAD_TIME_DAYS = 30;
