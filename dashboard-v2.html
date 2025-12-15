@@ -62,7 +62,11 @@ async function load() {
       <td>${p.stock}</td>
       <td>${daily.toFixed(2)}</td>
       <td>${p.days_of_stock ?? "N/A"}</td>
-      <td>${lead}</td>
+      <td>
+  <input type="number" value="${lead}" min="0"
+    onchange="saveLeadTime(${p.id}, this.value)" />
+</td>
+
       <td>${suggested}</td>
       <td class="${p.status}">${p.status}</td>
     `;
