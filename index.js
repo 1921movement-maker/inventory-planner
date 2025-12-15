@@ -101,6 +101,33 @@ app.patch("/products/:id", async (req, res) => {
 
   res.json(rows[0]);
 });
+// BULK UPDATE PRODUCT IMAGES
+app.patch("/products/images/bulk", async (req, res) => {
+  const { updates } = req.body;
+  // updates = [{ product_id: 1, image_url: "https://..." }]
+
+  const results = [];
+
+  for (const item of updates) {
+    const { rows } = await pool.query(
+      `
+      UPDATE products
+      SET image_url = $1
+      WHERE id = $2
+      RETURNING id, name, image_url
+      `,
+      [item.image_url, item.product_id]
+    );
+
+    if (rows[0]) results.push(rows[0]);
+  }
+
+  res.json({
+    updated: results.length,
+    products: results
+  });
+});
+
 
 // UPDATE stock
 app.patch("/products/:id/stock", async (req, res) => {
