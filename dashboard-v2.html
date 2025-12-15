@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Inventory Planner v2</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #ddd; }
+    th { background: #f4f4f4; }
+    .OK { color: green; font-weight: bold; }
+    .ORDER\ SOON { color: orange; font-weight: bold; }
+    .ORDER\ NOW { color: red; font-weight: bold; }
+    img { width: 50px; height: auto; }
+    input { width: 70px; }
+  </style>
+</head>
+<body>
+
+<h1>Inventory Planner (v2)</h1>
+
+<button onclick="downloadCSV()">⬇️ Download CSV</button>
+<br><br>
+
+<table>
+  <thead>
+    <tr>
+      <th>Image</th>
+      <th>SKU</th>
+      <th>Name</th>
+      <th>Stock</th>
+      <th>Daily Velocity</th>
+      <th>Days of Stock</th>
+      <th>Lead Time (days)</th>
+      <th>Suggested Reorder</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+async function load() {
+  const res = await fetch("/inventory/reorder-status");
+  const data = await res.json();
+  const tbody = document.getElementById("rows");
+  tbody.innerHTML = "";
+
+  data.forEach(p => {
+    const daily = Number(p.daily_velocity_30 || 0);
+    const lead = Number(p.lead_time_days || 30);
+    const buffer = 15; // adjustable safety buffer
+    const suggested = Math.max(
+      Math.ceil(daily * (lead + buffer) - p.stock),
+      0
+    );
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.image_url ? `<img src="${p.image_url}">` : ""}</td>
+      <td>${p.sku}</td>
+      <td>${p.name}</td>
+      <td>${p.stock}</td>
+      <td>${daily.toFixed(2)}</td>
+      <td>${p.days_of_stock ?? "N/A"}</td>
+      <td>${lead}</td>
+      <td>${suggested}</td>
+      <td class="${p.status}">${p.status}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function downloadCSV() {
+  window.location.href = "/purchase-orders/suggestions.csv";
+}
+
+load();
+</script>
+
+</body>
+</html>
