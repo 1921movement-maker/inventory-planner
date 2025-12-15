@@ -267,15 +267,19 @@ app.post("/purchase-orders/suggest", async (req, res) => {
   });
 });
 app.post("/purchase-orders", async (req, res) => {
-  const { product_id, quantity } = req.body;
+  const { product_id, quantity, expected_date } = req.body;
 
-  const { rows } = await pool.query(
-    `INSERT INTO purchase_orders (product_id, quantity)
-     VALUES ($1,$2) RETURNING *`,
-    [product_id, quantity]
-  );
+const { rows } = await pool.query(
+  `
+  INSERT INTO purchase_orders (product_id, quantity, expected_date, status)
+  VALUES ($1, $2, $3, 'open')
+  RETURNING *
+  `,
+  [product_id, quantity, expected_date]
+);
 
-  res.json(rows[0]);
+res.json(rows[0]);
+
 });
 app.post("/purchase-orders/:id/receive", async (req, res) => {
   const { id } = req.params;
