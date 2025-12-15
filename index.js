@@ -284,6 +284,54 @@ res.json(rows[0]);
 
 });
 app.post("/purchase-orders/:id/receive", async (req, res) => {
+  const poId = req.params.id;
+
+  try {
+    // 1. Get the purchase order
+    const { rows } = await pool.query(
+      `SELECT * FROM purchase_orders WHERE id = $1`,
+      [poId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "PO not found" });
+    }
+
+    const po = rows[0];
+
+    if (po.status === "received") {
+      return res.status(400).json({ error: "PO already received" });
+    }
+
+    // 2. Update product stock
+    await pool.query(
+      `UPDATE products
+       SET stock = stock + $1
+       WHERE id = $2`,
+      [po.quantity, po.product_id]
+    );
+
+    // 3. Mark PO as received
+    await pool.query(
+      `UPDATE purchase_orders
+       SET status = 'received'
+       WHERE id = $1`,
+      [poId]
+    );
+
+    res.json({
+      message: "Inventory received",
+      product_id: po.product_id,
+      quantity_added: po.quantity
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to receive inventory" });
+  }
+});
+
+app.post("/purchase-orders/:id/receive", async (req, res) => {
   const { id } = req.params;
 
   // Get PO
