@@ -130,6 +130,23 @@ app.patch("/products/:id", async (req, res) => {
 
   res.json(rows[0]);
 });
+app.patch("/products/:id/lead-time", async (req, res) => {
+  const { id } = req.params;
+  const { lead_time_days } = req.body;
+
+  const { rows } = await pool.query(
+    `
+    UPDATE products
+    SET lead_time_days = $1
+    WHERE id = $2
+    RETURNING *
+    `,
+    [Number(lead_time_days), id]
+  );
+
+  res.json(rows[0]);
+});
+
 // BULK UPDATE PRODUCT IMAGES
 app.patch("/products/images/bulk", async (req, res) => {
   const { updates } = req.body;
