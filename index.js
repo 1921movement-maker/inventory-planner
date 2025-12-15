@@ -355,6 +355,47 @@ app.get("/purchase-orders/suggestions.csv", async (req, res) => {
   res.send(csv);
 });
 
+const csv = require("csv-parser");
+const fs = require("fs");
+const multer = require("multer");
+
+const upload = multer({ dest: "uploads/" });
+
+app.post("/inventory/import", upload.single("file"), async (req, res) => {
+  const results = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", data => results.push(data))
+    .on("end", async () => {
+      try {
+        for (const row of results) {
+          await pool.query(
+            `
+            UPDATE products
+            SET
+              stock = $1,
+              reorder_point = $2
+            WHERE sku = $3
+            `,
+            [
+              Number(row.stock),
+              Number(row.reorder_point || 0),
+              row.sku
+            ]
+          );
+        }
+
+        fs.unlinkSync(req.file.path);
+        res.json({ success: true, updated: results.length });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Import failed" });
+      }
+    });
+});
+
+
 
 // PO RECOMMENDATIONS
 app.get("/purchase-orders/recommendations", async (req, res) => {
