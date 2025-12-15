@@ -317,6 +317,44 @@ app.get("/purchase-orders/suggestions", async (req, res) => {
   res.json(suggestions);
 });
 
+const { Parser } = require("json2csv");
+
+app.get("/purchase-orders/suggestions.csv", async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT
+      p.sku,
+      p.name,
+      p.stock AS current_stock,
+      COALESCE(SUM(
+        CASE 
+          WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+          THEN s.quantity 
+        END
+      ), 0) / 30.0 AS daily_velocity,
+      GREATEST(
+        CEIL(
+          (COALESCE(SUM(
+            CASE 
+              WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+              THEN s.quantity 
+            END
+          ), 0) / 30.0) * 90 - p.stock
+        ),
+        0
+      ) AS suggested_order_quantity
+    FROM products p
+    LEFT JOIN sales s ON p.id = s.product_id
+    GROUP BY p.id
+  `);
+
+  const parser = new Parser();
+  const csv = parser.parse(rows);
+
+  res.header("Content-Type", "text/csv");
+  res.attachment("reorder_suggestions.csv");
+  res.send(csv);
+});
+
 
 // PO RECOMMENDATIONS
 app.get("/purchase-orders/recommendations", async (req, res) => {
