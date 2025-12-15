@@ -61,6 +61,14 @@ const pool = new Pool({
     );
   `);
 })();
+(async () => {
+  await pool.query(`
+    ALTER TABLE purchase_orders
+    ADD COLUMN IF NOT EXISTS expected_date DATE;
+  `);
+})();
+
+
 ALTER TABLE purchase_orders
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open',
 ADD COLUMN IF NOT EXISTS expected_date DATE;
