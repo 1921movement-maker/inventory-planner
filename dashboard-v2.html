@@ -53,6 +53,17 @@ async function load() {
       Math.ceil(daily * (lead + buffer) - p.stock),
       0
     );
+    async function saveLeadTime(productId, value) {
+  await fetch(`/products/${productId}/lead-time`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lead_time_days: Number(value) })
+  });
+
+  // refresh calculations
+  load();
+}
+
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
