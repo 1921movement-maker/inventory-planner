@@ -302,6 +302,44 @@ app.get("/inventory/reorder-status", async (req, res) => {
   res.json(result);
 });
 
+app.post("/purchase-orders/from-dashboard", async (req, res) => {
+  const { supplier_id, items } = req.body; 
+  // items: [{ product_id, quantity }]
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const poRes = await client.query(
+      `
+      INSERT INTO purchase_orders (status)
+      VALUES ('open')
+      RETURNING *
+      `
+    );
+    const po = poRes.rows[0];
+
+    for (const item of items) {
+      await client.query(
+        `
+        INSERT INTO purchase_order_items
+          (purchase_order_id, product_id, quantity)
+        VALUES ($1, $2, $3)
+        `,
+        [po.id, item.product_id, item.quantity]
+      );
+    }
+
+    await client.query("COMMIT");
+    res.json({ purchase_order_id: po.id });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: "Failed to create PO" });
+  } finally {
+    client.release();
+  }
+});
+
 app.get("/purchase-orders/suggestions", async (req, res) => {
   const TARGET_DAYS_COVERAGE = 90;
 
