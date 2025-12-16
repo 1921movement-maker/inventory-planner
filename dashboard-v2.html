@@ -25,6 +25,7 @@
 <table>
   <thead>
     <tr>
+      <th>Supplier</th>
       <th>Select</th>
       <th>Image</th>
       <th>SKU</th>
@@ -69,6 +70,8 @@ async function load() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
+    <td>${p.supplier_name || "Unassigned"}</td>
+
     <td>
   <input type="checkbox"
     data-product-id="${p.id}"
