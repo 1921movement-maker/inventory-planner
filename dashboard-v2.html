@@ -19,11 +19,13 @@
 <h1>Inventory Planner (v2)</h1>
 
 <button onclick="downloadCSV()">⬇️ Download CSV</button>
+<button onclick="createPO()">➕ Create PO from Selected</button>
 <br><br>
 
 <table>
   <thead>
     <tr>
+      <th>Select</th>
       <th>Image</th>
       <th>SKU</th>
       <th>Name</th>
@@ -67,6 +69,11 @@ async function load() {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
+    <td>
+  <input type="checkbox"
+    data-product-id="${p.id}"
+    data-qty="${suggested}">
+</td>
       <td>${p.image_url ? `<img src="${p.image_url}">` : ""}</td>
       <td>${p.sku}</td>
       <td>${p.name}</td>
@@ -90,6 +97,34 @@ function downloadCSV() {
 }
 
 load();
+async function createPO() {
+  const checks = document.querySelectorAll('input[type="checkbox"]:checked');
+
+  if (checks.length === 0) {
+    alert("Select at least one product");
+    return;
+  }
+
+  const items = Array.from(checks).map(c => ({
+    product_id: Number(c.dataset.productId),
+    quantity: Number(c.dataset.qty)
+  }));
+
+  const res = await fetch("/purchase-orders/from-dashboard", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      supplier_id: null, // optional for now
+      items
+    })
+  });
+
+  const data = await res.json();
+  alert("PO created: #" + data.purchase_order_id);
+
+  load(); // refresh
+}
+
 </script>
 
 </body>
