@@ -214,6 +214,70 @@ app.post("/sales", async (req, res) => {
   );
   res.json(rows[0]);
 });
+// Get items for a specific PO
+app.get("/purchase-orders/:id/items", async (req, res) => {
+  const { id } = req.params;
+
+  const { rows } = await pool.query(`
+    SELECT
+      poi.product_id,
+      p.sku,
+      p.name,
+      poi.quantity
+    FROM purchase_order_items poi
+    JOIN products p ON p.id = poi.product_id
+    WHERE poi.purchase_order_id = $1
+  `, [id]);
+
+  res.json(rows);
+});
+// Receive a purchase order
+app.post("/purchase-orders/:id/receive", async (req, res) => {
+  const { id } = req.params;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const po = await client.query(
+      "SELECT status FROM purchase_orders WHERE id = $1",
+      [id]
+    );
+
+    if (po.rows[0].status === "RECEIVED") {
+      throw new Error("PO already received");
+    }
+
+    const items = await client.query(`
+      SELECT product_id, quantity
+      FROM purchase_order_items
+      WHERE purchase_order_id = $1
+    `, [id]);
+
+    for (const item of items.rows) {
+      await client.query(`
+        UPDATE products
+        SET stock = stock + $1
+        WHERE id = $2
+      `, [item.quantity, item.product_id]);
+    }
+
+    await client.query(`
+      UPDATE purchase_orders
+      SET status = 'RECEIVED'
+      WHERE id = $1
+    `, [id]);
+
+    await client.query("COMMIT");
+    res.json({ success: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    res.status(400).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // LIST ALL PURCHASE ORDERS
 app.get("/purchase-orders", async (req, res) => {
   try {
