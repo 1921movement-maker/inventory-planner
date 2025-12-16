@@ -345,26 +345,40 @@ app.get("/inventory/velocity", async (req, res) => {
 app.get("/inventory/reorder-status", async (req, res) => {
   const { rows } = await pool.query(`
     SELECT
-      p.id,
-      p.sku,
-      p.name,
-      p.image_url,
-      p.stock,
-      p.reorder_point,
+  p.id,
+  p.sku,
+  p.name,
+  p.image_url,
+  p.stock,
+  p.reorder_point,
 
-      COALESCE(
-        SUM(CASE 
-          WHEN s.sold_at >= NOW() - INTERVAL '30 days' 
-          THEN s.quantity 
-        END), 0
-      ) / 30.0 AS daily_velocity_30,
+  sup.id   AS supplier_id,
+  sup.name AS supplier_name,
+  sup.lead_time_days,
 
-      COALESCE(p.lead_time_days, sup.lead_time_days, 30) AS lead_time_days
+  COALESCE(SUM(
+    CASE 
+      WHEN s.sold_at >= NOW() - INTERVAL '30 days'
+      THEN s.quantity
+    END
+  ), 0) / 30.0 AS daily_velocity
 
-    FROM products p
-    LEFT JOIN sales s ON p.id = s.product_id
-    LEFT JOIN suppliers sup ON p.supplier_id = sup.id
-    GROUP BY p.id, sup.lead_time_days
+FROM products p
+LEFT JOIN sales s
+  ON p.id = s.product_id
+LEFT JOIN suppliers sup
+  ON p.supplier_id = sup.id
+
+GROUP BY
+  p.id,
+  p.sku,
+  p.name,
+  p.image_url,
+  p.stock,
+  p.reorder_point,
+  sup.id,
+  sup.name,
+  sup.lead_time_days;
   `);
 
   const result = rows.map(p => {
