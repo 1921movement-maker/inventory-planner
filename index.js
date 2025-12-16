@@ -48,6 +48,7 @@ const pool = new Pool({
     ALTER TABLE products
     ADD COLUMN IF NOT EXISTS image_url TEXT;
   `);
+  
 })();
 (async () => {
   await pool.query(`
@@ -274,6 +275,9 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
         [item.quantity, item.product_id]
       );
     }
+    ALTER TABLE purchase_orders
+ADD COLUMN IF NOT EXISTS received_at TIMESTAMP;
+
 
     // 4️⃣ Mark PO as received
     await client.query(
