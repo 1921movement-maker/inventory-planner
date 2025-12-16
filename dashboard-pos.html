@@ -20,21 +20,44 @@
   </table>
 
   <script>
-    async function viewPO(poId) {
-  const res = await fetch(`/purchase-orders/${poId}/items`);
-  const items = await res.json();
+   async function createPO() {
+  const checked = document.querySelectorAll('input[type="checkbox"]:checked');
 
-  let msg = "PO Items:\n\n";
-  items.forEach(i => {
-    msg += `${i.sku} – ${i.name} x ${i.quantity}\n`;
+  if (!checked.length) {
+    alert("Select at least one product");
+    return;
+  }
+
+  // Group by supplier
+  const groups = {};
+
+  checked.forEach(cb => {
+    const supplierId = cb.dataset.supplier;
+    const productId = cb.dataset.productId;
+    const qty = cb.dataset.qty;
+
+    if (!groups[supplierId]) groups[supplierId] = [];
+    groups[supplierId].push({ product_id: productId, quantity: qty });
   });
 
-  if (confirm(msg + "\n\nMark this PO as RECEIVED?")) {
-    await fetch(`/purchase-orders/${poId}/receive`, { method: "POST" });
-    alert("PO received and inventory updated");
-    location.reload();
+  // Create one PO per supplier
+  for (const supplierId in groups) {
+    const res = await fetch("/purchase-orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        supplier_id: supplierId,
+        items: groups[supplierId]
+      })
+    });
+
+    const data = await res.json();
+    alert(`PO created for supplier ${supplierId}: #${data.id}`);
   }
+
+  location.reload();
 }
+
 
     async function loadPOs() {
       const res = await fetch("/purchase-orders");
