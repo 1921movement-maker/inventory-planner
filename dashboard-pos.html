@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Purchase Orders</title>
+</head>
+<body>
+  <h1>Purchase Orders</h1>
+
+  <table border="1" cellpadding="8">
+    <thead>
+      <tr>
+        <th>PO #</th>
+        <th>Date</th>
+        <th>Total Items</th>
+        <th>Total Units</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="po-rows"></tbody>
+  </table>
+
+  <script>
+    async function loadPOs() {
+      const res = await fetch("/purchase-orders");
+      const data = await res.json();
+
+      const tbody = document.getElementById("po-rows");
+      tbody.innerHTML = "";
+
+      data.forEach(po => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${po.id}</td>
+          <td>${new Date(po.created_at).toLocaleDateString()}</td>
+          <td>${po.total_items}</td>
+          <td>${po.total_units}</td>
+          <td>${po.status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadPOs();
+  </script>
+</body>
+</html>
