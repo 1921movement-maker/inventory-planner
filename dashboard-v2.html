@@ -124,7 +124,7 @@ async function createPO() {
   });
 
   const data = await res.json();
-  alert("PO created: #" + data.purchase_order_id);
+  console.log("PO response:", data); alert("PO created (check console)");
 
   load(); // refresh
 }
