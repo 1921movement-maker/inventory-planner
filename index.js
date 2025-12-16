@@ -413,14 +413,14 @@ app.post("/purchase-orders/from-dashboard", async (req, res) => {
     await client.query("BEGIN");
 
     const poRes = await client.query(
-      `
-      INSERT INTO purchase_orders (supplier_id, status)
+  `
+  INSERT INTO purchase_orders (supplier_id, status)
   VALUES ($1, 'open')
   RETURNING id
   `,
   [supplier_id]
-      `
-    );
+);
+
     const po = poRes.rows[0];
 
     for (const item of items) {
