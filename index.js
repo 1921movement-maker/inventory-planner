@@ -214,6 +214,30 @@ app.post("/sales", async (req, res) => {
   );
   res.json(rows[0]);
 });
+// LIST ALL PURCHASE ORDERS
+app.get("/purchase-orders", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        po.id,
+        po.created_at,
+        po.status,
+        COUNT(poi.id) AS total_items,
+        COALESCE(SUM(poi.quantity), 0) AS total_units
+      FROM purchase_orders po
+      LEFT JOIN purchase_order_items poi
+        ON po.id = poi.purchase_order_id
+      GROUP BY po.id
+      ORDER BY po.created_at DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch purchase orders" });
+  }
+});
+
 app.get("/inventory/velocity", async (req, res) => {
   const { rows } = await pool.query(`
     SELECT
