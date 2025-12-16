@@ -20,6 +20,22 @@
   </table>
 
   <script>
+    async function viewPO(poId) {
+  const res = await fetch(`/purchase-orders/${poId}/items`);
+  const items = await res.json();
+
+  let msg = "PO Items:\n\n";
+  items.forEach(i => {
+    msg += `${i.sku} – ${i.name} x ${i.quantity}\n`;
+  });
+
+  if (confirm(msg + "\n\nMark this PO as RECEIVED?")) {
+    await fetch(`/purchase-orders/${poId}/receive`, { method: "POST" });
+    alert("PO received and inventory updated");
+    location.reload();
+  }
+}
+
     async function loadPOs() {
       const res = await fetch("/purchase-orders");
       const data = await res.json();
@@ -32,6 +48,9 @@
         tr.innerHTML = `
           <td>${po.id}</td>
           <td>${new Date(po.created_at).toLocaleDateString()}</td>
+          <td>
+  <a href="#" onclick="viewPO(${po.id})">PO #${po.id}</a>
+</td>
           <td>${po.total_items}</td>
           <td>${po.total_units}</td>
           <td>${po.status}</td>
