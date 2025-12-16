@@ -414,9 +414,11 @@ app.post("/purchase-orders/from-dashboard", async (req, res) => {
 
     const poRes = await client.query(
       `
-      INSERT INTO purchase_orders (status)
-      VALUES ('open')
-      RETURNING *
+      INSERT INTO purchase_orders (supplier_id, status)
+  VALUES ($1, 'open')
+  RETURNING id
+  `,
+  [supplier_id]
       `
     );
     const po = poRes.rows[0];
@@ -641,7 +643,7 @@ app.post("/purchase-orders/suggest", async (req, res) => {
   });
 });
 app.post("/purchase-orders", async (req, res) => {
-  const { product_id, quantity, expected_date } = req.body;
+const { supplier_id, items } = req.body;
 
 const { rows } = await pool.query(
   `
