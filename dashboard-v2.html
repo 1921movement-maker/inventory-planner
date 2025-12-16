@@ -75,7 +75,8 @@ async function load() {
     <td>
   <input type="checkbox"
     data-product-id="${p.id}"
-    data-qty="${suggested}">
+    data-qty="${suggested}"
+    data-supplier="${p.supplier_id}">
 </td>
       <td>${p.image_url ? `<img src="${p.image_url}">` : ""}</td>
       <td>${p.sku}</td>
