@@ -233,50 +233,69 @@ app.get("/purchase-orders/:id/items", async (req, res) => {
 });
 // Receive a purchase order
 app.post("/purchase-orders/:id/receive", async (req, res) => {
-  const { id } = req.params;
-
+  const poId = req.params.id;
   const client = await pool.connect();
+
   try {
     await client.query("BEGIN");
 
-    const po = await client.query(
-      "SELECT status FROM purchase_orders WHERE id = $1",
-      [id]
+    // 1️⃣ Check PO status
+    const poCheck = await client.query(
+      `SELECT status FROM purchase_orders WHERE id = $1`,
+      [poId]
     );
 
-    if (po.rows[0].status === "RECEIVED") {
+    if (!poCheck.rows.length) {
+      throw new Error("PO not found");
+    }
+
+    if (poCheck.rows[0].status === "received") {
       throw new Error("PO already received");
     }
 
-    const items = await client.query(`
+    // 2️⃣ Get PO items
+    const itemsRes = await client.query(
+      `
       SELECT product_id, quantity
       FROM purchase_order_items
       WHERE purchase_order_id = $1
-    `, [id]);
+      `,
+      [poId]
+    );
 
-    for (const item of items.rows) {
-      await client.query(`
+    // 3️⃣ Update inventory
+    for (const item of itemsRes.rows) {
+      await client.query(
+        `
         UPDATE products
         SET stock = stock + $1
         WHERE id = $2
-      `, [item.quantity, item.product_id]);
+        `,
+        [item.quantity, item.product_id]
+      );
     }
 
-    await client.query(`
+    // 4️⃣ Mark PO as received
+    await client.query(
+      `
       UPDATE purchase_orders
-      SET status = 'RECEIVED'
+      SET status = 'received', received_at = NOW()
       WHERE id = $1
-    `, [id]);
+      `,
+      [poId]
+    );
 
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (err) {
     await client.query("ROLLBACK");
+    console.error(err);
     res.status(400).json({ error: err.message });
   } finally {
     client.release();
   }
 });
+
 
 // LIST ALL PURCHASE ORDERS
 app.get("/purchase-orders", async (req, res) => {
