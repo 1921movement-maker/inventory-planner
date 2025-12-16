@@ -275,8 +275,6 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
         [item.quantity, item.product_id]
       );
     }
-    ALTER TABLE purchase_orders
-ADD COLUMN IF NOT EXISTS received_at TIMESTAMP;
 
 
     // 4️⃣ Mark PO as received
