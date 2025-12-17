@@ -301,27 +301,24 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
 
 // LIST ALL PURCHASE ORDERS
 app.get("/purchase-orders", async (req, res) => {
-  try {
-    const { rows } = await pool.query(`
-      SELECT
-        po.id,
-        po.created_at,
-        po.status,
-        COUNT(poi.id) AS total_items,
-        COALESCE(SUM(poi.quantity), 0) AS total_units
-      FROM purchase_orders po
-      LEFT JOIN purchase_order_items poi
-        ON po.id = poi.purchase_order_id
-      GROUP BY po.id
-      ORDER BY po.created_at DESC
-    `);
+  const { rows } = await pool.query(`
+    SELECT
+      po.id,
+      po.created_at,
+      po.status,
+      COALESCE(s.name, 'Unassigned') AS supplier_name,
+      COUNT(poi.id) AS total_items,
+      COALESCE(SUM(poi.quantity), 0) AS total_units
+    FROM purchase_orders po
+    LEFT JOIN suppliers s ON po.supplier_id = s.id
+    LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
+    GROUP BY po.id, s.name
+    ORDER BY po.id DESC
+  `);
 
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch purchase orders" });
-  }
+  res.json(rows);
 });
+
 
 app.get("/inventory/velocity", async (req, res) => {
   const { rows } = await pool.query(`
