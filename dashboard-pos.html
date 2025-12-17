@@ -62,6 +62,7 @@
     async function loadPOs() {
       const res = await fetch("/purchase-orders");
       const data = await res.json();
+      console.log(data);
 
       const tbody = document.getElementById("po-rows");
       tbody.innerHTML = "";
