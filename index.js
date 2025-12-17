@@ -301,23 +301,30 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
 
 // LIST ALL PURCHASE ORDERS
 app.get("/purchase-orders", async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT
-      po.id,
-      po.created_at,
-      po.status,
-      COALESCE(s.name, 'Unassigned') AS supplier_name,
-      COUNT(poi.id) AS total_items,
-      COALESCE(SUM(poi.quantity), 0) AS total_units
-    FROM purchase_orders po
-    LEFT JOIN suppliers s ON po.supplier_id = s.id
-    LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
-    GROUP BY po.id, s.name
-    ORDER BY po.id DESC
-  `);
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        po.id,
+        po.created_at,
+        po.status,
+        COALESCE(s.name, 'Unassigned') AS supplier_name,
+        COUNT(poi.id) AS total_items,
+        COALESCE(SUM(poi.quantity), 0) AS total_units
+      FROM purchase_orders po
+      LEFT JOIN suppliers s ON po.supplier_id = s.id
+      LEFT JOIN purchase_order_items poi
+        ON poi.purchase_order_id = po.id
+      GROUP BY po.id, s.name
+      ORDER BY po.id DESC
+    `);
 
-  res.json(rows);
+    res.json(rows);
+  } catch (err) {
+    console.error("Failed to fetch purchase orders:", err);
+    res.status(500).json({ error: "Failed to fetch purchase orders" });
+  }
 });
+
 
 
 app.get("/inventory/velocity", async (req, res) => {
