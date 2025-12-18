@@ -20,6 +20,23 @@
   </table>
 
 <script>
+async function receivePO(poId) {
+  if (!confirm("Mark this PO as received?")) return;
+
+  const res = await fetch(`/purchase-orders/${poId}/receive`, {
+    method: "POST"
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+  } else {
+    alert("PO received and inventory updated");
+    loadPOs();
+  }
+}
+
 async function viewPO(poId) {
   const res = await fetch(`/purchase-orders/${poId}`);
   const items = await res.json();
