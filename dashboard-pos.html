@@ -19,33 +19,34 @@
     <tbody id="po-rows"></tbody>
   </table>
 
- <script>
+<script>
 async function loadPOs() {
-  const res = await fetch("/purchase-orders");
-  const data = await res.json();
+  try {
+    const res = await fetch("/purchase-orders");
+    const data = await res.json();
 
-  const tbody = document.getElementById("rows");
-  tbody.innerHTML = "";
+    const tbody = document.getElementById("po-rows");
+    tbody.innerHTML = "";
 
-  data.forEach(po => {
-    const tr = document.createElement("tr");
-
-    const date = new Date(po.created_at).toLocaleDateString();
-
-    tr.innerHTML = `
-      <td>PO #${po.id}</td>
-      <td>${date}</td>
-      <td>${po.total_items}</td>
-      <td>${po.total_units}</td>
-      <td>${po.status}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+    data.forEach(po => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${po.id}</td>
+        <td>${new Date(po.created_at).toLocaleDateString()}</td>
+        <td>${po.total_items}</td>
+        <td>${po.total_units}</td>
+        <td>${po.status}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("Failed to load POs", err);
+  }
 }
 
 loadPOs();
 </script>
+
 
 </body>
 </html>
