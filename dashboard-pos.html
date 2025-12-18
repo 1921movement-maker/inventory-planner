@@ -49,7 +49,12 @@ async function loadPOs() {
         <td>${new Date(po.created_at).toLocaleDateString()}</td>
         <td>${po.total_items}</td>
         <td>${po.total_units}</td>
-        <td>${po.status}</td>
+        <td>
+  ${po.status}
+  ${po.status !== "RECEIVED"
+    ? `<br><button onclick="receivePO(${po.id})">Receive</button>`
+    : ""}
+</td>
       `;
       tbody.appendChild(tr);
     });
