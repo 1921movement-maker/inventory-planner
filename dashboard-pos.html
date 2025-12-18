@@ -14,6 +14,7 @@
         <th>Total Items</th>
         <th>Total Units</th>
         <th>Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="po-rows"></tbody>
@@ -59,20 +60,19 @@ async function loadPOs() {
 
     data.forEach(po => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-       <td>
-  <a href="#" onclick="viewPO(${po.id})">PO #${po.id}</a>
-</td>
-        <td>${new Date(po.created_at).toLocaleDateString()}</td>
-        <td>${po.total_items}</td>
-        <td>${po.total_units}</td>
-        <td>
-  ${po.status}
-  ${po.status !== "RECEIVED"
-    ? `<br><button onclick="receivePO(${po.id})">Receive</button>`
-    : ""}
-</td>
-      `;
+ tr.innerHTML = `
+  <td><a href="#" onclick="viewPO(${po.id})">PO #${po.id}</a></td>
+  <td>${new Date(po.created_at).toLocaleDateString()}</td>
+  <td>${po.total_items}</td>
+  <td>${po.total_units}</td>
+  <td>${po.status}</td>
+  <td>
+    ${po.status !== "RECEIVED"
+      ? `<button onclick="markReceived(${po.id})">Mark Received</button>`
+      : "—"}
+  </td>
+`;
+
       tbody.appendChild(tr);
     });
   } catch (err) {
