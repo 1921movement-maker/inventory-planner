@@ -20,6 +20,18 @@
   </table>
 
 <script>
+async function viewPO(poId) {
+  const res = await fetch(`/purchase-orders/${poId}`);
+  const items = await res.json();
+
+  let message = `PO #${poId}\n\n`;
+
+  items.forEach(item => {
+    message += `${item.sku} — ${item.name}\nQty: ${item.quantity}\n\n`;
+  });
+
+  alert(message);
+}
 async function loadPOs() {
   try {
     const res = await fetch("/purchase-orders");
