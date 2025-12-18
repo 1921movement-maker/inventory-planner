@@ -197,6 +197,27 @@ app.patch("/products/:id/stock", async (req, res) => {
   );
   res.json(rows[0]);
 });
+app.get("/purchase-orders/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        p.id AS product_id,
+        p.sku,
+        p.name,
+        poi.quantity
+      FROM purchase_order_items poi
+      JOIN products p ON p.id = poi.product_id
+      WHERE poi.purchase_order_id = $1
+    `, [id]);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch PO details" });
+  }
+});
 
 // LIST items that need reorder
 app.get("/inventory/reorder", async (req, res) => {
