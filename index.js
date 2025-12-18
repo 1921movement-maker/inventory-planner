@@ -344,6 +344,65 @@ app.get("/purchase-orders", async (req, res) => {
   }
 });
 
+app.post("/purchase-orders/:id/receive", async (req, res) => {
+  const poId = Number(req.params.id);
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1️⃣ Lock PO & make sure it's not already received
+    const poRes = await client.query(
+      `SELECT status FROM purchase_orders WHERE id = $1 FOR UPDATE`,
+      [poId]
+    );
+
+    if (!poRes.rows.length) {
+      throw new Error("PO not found");
+    }
+
+    if (poRes.rows[0].status === "RECEIVED") {
+      throw new Error("PO already received");
+    }
+
+    // 2️⃣ Get PO items
+    const itemsRes = await client.query(
+      `SELECT product_id, quantity
+       FROM purchase_order_items
+       WHERE purchase_order_id = $1`,
+      [poId]
+    );
+
+    // 3️⃣ Update product stock
+    for (const item of itemsRes.rows) {
+      await client.query(
+        `UPDATE products
+         SET stock = stock + $1
+         WHERE id = $2`,
+        [item.quantity, item.product_id]
+      );
+    }
+
+    // 4️⃣ Mark PO as received
+    await client.query(
+      `UPDATE purchase_orders
+       SET status = 'RECEIVED',
+           received_at = NOW()
+       WHERE id = $1`,
+      [poId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ success: true });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
 
 
 
