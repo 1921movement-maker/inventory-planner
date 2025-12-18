@@ -81,6 +81,22 @@ async function loadPOs() {
 }
 
 loadPOs();
+async function markReceived(poId) {
+  const confirmReceive = confirm("Mark this PO as RECEIVED?");
+  if (!confirmReceive) return;
+
+  const res = await fetch(`/purchase-orders/${poId}/receive`, {
+    method: "POST"
+  });
+
+  if (!res.ok) {
+    alert("Failed to receive PO");
+    return;
+  }
+
+  alert("PO marked as RECEIVED");
+  loadPOs();
+}
 </script>
 
 
