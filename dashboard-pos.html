@@ -43,7 +43,9 @@ async function loadPOs() {
     data.forEach(po => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${po.id}</td>
+       <td>
+  <a href="#" onclick="viewPO(${po.id})">PO #${po.id}</a>
+</td>
         <td>${new Date(po.created_at).toLocaleDateString()}</td>
         <td>${po.total_items}</td>
         <td>${po.total_units}</td>
