@@ -829,6 +829,46 @@ app.post("/purchase-orders/:id/receive", async (req, res) => {
     res.status(500).json({ error: "Failed to receive inventory" });
   }
 });
+app.post("/purchase-orders/:id/receive", async (req, res) => {
+  const poId = req.params.id;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Get PO items
+    const { rows: items } = await client.query(`
+      SELECT product_id, quantity
+      FROM purchase_order_items
+      WHERE purchase_order_id = $1
+    `, [poId]);
+
+    // 2. Increase product stock
+    for (const item of items) {
+      await client.query(`
+        UPDATE products
+        SET stock = stock + $1
+        WHERE id = $2
+      `, [item.quantity, item.product_id]);
+    }
+
+    // 3. Mark PO as RECEIVED
+    await client.query(`
+      UPDATE purchase_orders
+      SET status = 'RECEIVED', received_at = NOW()
+      WHERE id = $1
+    `, [poId]);
+
+    await client.query("COMMIT");
+    res.json({ success: true });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Failed to receive PO" });
+  } finally {
+    client.release();
+  }
+});
 
 app.post("/purchase-orders/:id/receive", async (req, res) => {
   const { id } = req.params;
