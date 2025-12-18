@@ -19,71 +19,33 @@
     <tbody id="po-rows"></tbody>
   </table>
 
-  <script>
-   async function createPO() {
-  const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+ <script>
+async function loadPOs() {
+  const res = await fetch("/purchase-orders");
+  const data = await res.json();
 
-  if (!checked.length) {
-    alert("Select at least one product");
-    return;
-  }
+  const tbody = document.getElementById("rows");
+  tbody.innerHTML = "";
 
-  // Group by supplier
-  const groups = {};
+  data.forEach(po => {
+    const tr = document.createElement("tr");
 
-  checked.forEach(cb => {
-    const supplierId = cb.dataset.supplier;
-    const productId = cb.dataset.productId;
-    const qty = cb.dataset.qty;
+    const date = new Date(po.created_at).toLocaleDateString();
 
-    if (!groups[supplierId]) groups[supplierId] = [];
-    groups[supplierId].push({ product_id: productId, quantity: qty });
+    tr.innerHTML = `
+      <td>PO #${po.id}</td>
+      <td>${date}</td>
+      <td>${po.total_items}</td>
+      <td>${po.total_units}</td>
+      <td>${po.status}</td>
+    `;
+
+    tbody.appendChild(tr);
   });
-
-  // Create one PO per supplier
-  for (const supplierId in groups) {
-    const res = await fetch("/purchase-orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        supplier_id: supplierId,
-        items: groups[supplierId]
-      })
-    });
-
-    const data = await res.json();
-    alert(`PO created for supplier ${supplierId}: #${data.id}`);
-  }
-
-  location.reload();
 }
 
+loadPOs();
+</script>
 
-    async function loadPOs() {
-      const res = await fetch("/purchase-orders");
-      const data = await res.json();
-      console.log(data);
-
-      const tbody = document.getElementById("po-rows");
-      tbody.innerHTML = "";
-
-      data.forEach(po => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${po.id}</td>
-          <td>${new Date(po.created_at).toLocaleDateString()}</td>
-          <td>
-  <a href="#" onclick="viewPO(${po.id})">PO #${po.id}</a>
-</td>
-          <td>${po.total_items}</td>
-          <td>${po.total_units}</td>
-          <td>${po.status}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    loadPOs();
-  </script>
 </body>
 </html>
